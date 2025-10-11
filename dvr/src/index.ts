@@ -177,6 +177,8 @@ app.post("/record", async (c) => {
           writer.write(await localFile.arrayBuffer());
 
           await writer.end();
+
+          console.log(`Uploaded ${oggPath} to S3 bucket successfully.`);
         } else {
           console.error(`Converting failed for ${user} with code ${rc}`);
         }
