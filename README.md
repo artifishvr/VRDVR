@@ -4,6 +4,6 @@
 
 ## Repo structure
 
-- `cap/` - Barebones script for tailing vrchat logs and sending off URLs to the server (Bun/TS)
+- `cap/` ([Readme](cap/README.md)) - Barebones script for tailing vrchat logs and sending off URLs to the server (Go)
 - `dvr/` - Server for recording and processing streams (Bun/TS)
-- `web/` - Web interface (dvr.vrc.bz) (SvelteKit/TS)
+- `web/` - Web interface ([dvr.vrc.bz](https://dvr.vrc.bz)) (SvelteKit/TS)
