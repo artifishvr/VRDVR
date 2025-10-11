@@ -1,5 +1,5 @@
 {
-  "name": "VRCDNDVR",
+  "name": "dvr",
   "version": "0.0.7",
   "scripts": {
     "dev": "bun run --watch src/index.ts"
