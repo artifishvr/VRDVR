@@ -1,7 +1,14 @@
 import { Hono } from "hono";
 import { existsSync, mkdirSync, unlinkSync, createReadStream } from "node:fs";
 import { spawn, ChildProcess } from "node:child_process";
-import { s3, write, S3Client, S3File } from "bun";
+import { S3Client, S3File } from "bun";
+
+let norecord: string[] = [];
+
+if (process.env.DVR_NORECORD) {
+  norecord = process.env.DVR_NORECORD.split(",").map((s) => s.trim());
+  console.log("No Record List:", norecord);
+}
 
 const s3client = new S3Client({
   region: "auto",
@@ -97,6 +104,10 @@ app.post("/record", async (c) => {
     );
   }
 
+  if (norecord.includes(user.toLowerCase())) {
+    return c.json({ message: "Recording is disabled for this user" }, 403);
+  }
+
   const filename = `${user}-${new Date()
     .toISOString()
     .replace(/[:.]/g, "-")}.ts`;
@@ -179,6 +190,12 @@ app.post("/record", async (c) => {
           await writer.end();
 
           console.log(`Uploaded ${oggPath} to S3 bucket successfully.`);
+
+          try {
+            unlinkSync(oggPath);
+          } catch (err) {
+            console.error("Error deleting local files:", err);
+          }
         } else {
           console.error(`Converting failed for ${user} with code ${rc}`);
         }
