@@ -20,7 +20,7 @@ export const load = async () => {
 			.slice(1)
 			.join('-')
 			.split('.')[0]
-			.replace(/T(\d{2})-(\d{2})-(\d{2})-(\d{1,})Z$/, 'T$1:$2:$3.$4Z');
+			.replace(/T(\d{2})-(\d{2})-(\d{2})-(\d{1,})Z$/, 'T$1:$2:$3.$4Z'); // really bad parsing because the naming format i chose is bad
 		const url = `https://dvr-storage.vrc.bz/${key}`;
 
 		items.push({ username, date, url });

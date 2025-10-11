@@ -1,15 +1,14 @@
 import { Hono } from "hono";
 import { existsSync, mkdirSync, unlinkSync, createReadStream } from "node:fs";
 import { spawn, ChildProcess } from "node:child_process";
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { s3, write, S3Client, S3File } from "bun";
 
-const s3 = new S3Client({
+const s3client = new S3Client({
   region: "auto",
   endpoint: process.env.S3_ENDPOINT,
-  credentials: {
-    accessKeyId: process.env.S3_ACCESS_KEY || "",
-    secretAccessKey: process.env.S3_ACCESS_SECRET || "",
-  },
+  accessKeyId: process.env.S3_ACCESS_KEY,
+  secretAccessKey: process.env.S3_ACCESS_SECRET,
+  bucket: process.env.S3_BUCKET,
 });
 
 const activeRecordings = new Map<
@@ -161,25 +160,23 @@ app.post("/record", async (c) => {
         { stdio: ["ignore", "pipe", "pipe"] }
       );
 
-      remuxProcess.on("close", (rc) => {
+      remuxProcess.on("close", async (rc) => {
         if (rc === 0) {
           console.log(`Converting completed for ${user}: ${oggPath}`);
 
-          const fileStream = createReadStream(oggPath);
-          const bucketName = process.env.S3_BUCKET;
-          const putCommand = new PutObjectCommand({
-            Bucket: bucketName,
-            Key: oggPath.split("/").pop(),
-            Body: fileStream,
-            ContentType: "audio/ogg",
+          const localFile = Bun.file(oggPath);
+
+          const s3file: S3File = s3client.file(oggPath.split("/").pop()!);
+
+          const writer = s3file.writer({
+            retry: 3,
+            queueSize: 10,
+            partSize: 5 * 1024 * 1024,
           });
-          s3.send(putCommand)
-            .then(() => {
-              console.log(`Uploaded ${oggPath} to s3 bucket ${bucketName}`);
-            })
-            .catch((err) => {
-              console.error(`Failed to upload ${oggPath} to s3:`, err);
-            });
+
+          writer.write(await localFile.arrayBuffer());
+
+          await writer.end();
         } else {
           console.error(`Converting failed for ${user} with code ${rc}`);
         }
