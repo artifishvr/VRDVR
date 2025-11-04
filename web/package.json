@@ -15,7 +15,6 @@
 	},
 	"devDependencies": {
 		"@internationalized/date": "^3.8.1",
-		"@sveltejs/adapter-cloudflare": "^7.2.4",
 		"@sveltejs/kit": "^2.43.2",
 		"@sveltejs/vite-plugin-svelte": "^6.2.0",
 		"@tailwindcss/vite": "^4.1.13",
@@ -37,6 +36,7 @@
 		"@fontsource/maple-mono": "^5.2.6",
 		"@lucide/svelte": "^0.544.0",
 		"@neondatabase/serverless": "^1.0.2",
+		"@sveltejs/adapter-node": "^5.4.0",
 		"aws4fetch": "^1.0.20",
 		"drizzle-orm": "^0.44.6",
 		"pg": "^8.16.3"
