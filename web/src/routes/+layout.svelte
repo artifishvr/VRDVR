@@ -1,5 +1,7 @@
 <script lang="ts">
 	import '../app.css';
+	import '@fontsource/maple-mono';
+
 	import favicon from '$lib/assets/favicon.svg';
 
 	let { children } = $props();
