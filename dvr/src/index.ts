@@ -1,7 +1,9 @@
 import { Hono } from "hono";
-import { existsSync, mkdirSync, unlinkSync, createReadStream } from "node:fs";
-import { spawn, ChildProcess } from "node:child_process";
+import { existsSync, mkdirSync, unlinkSync } from "node:fs";
+import { spawn, spawnSync, ChildProcess } from "node:child_process";
 import { S3Client, S3File } from "bun";
+import { db } from "./db";
+import { recordings } from "./db/schema";
 
 let norecord: string[] = [];
 
@@ -145,6 +147,12 @@ app.post("/record", async (c) => {
 
   ffmpegProcess.on("close", (code) => {
     console.log(`Recording for ${user} finished with code ${code}`);
+    let startTime = activeRecordings.get(user)?.startTime;
+    if (!startTime) {
+      console.warn(`No start time found for ${user}`);
+      startTime = new Date();
+    }
+
     activeRecordings.delete(user);
 
     if (code === 0 && existsSync(outputPath)) {
@@ -175,9 +183,39 @@ app.post("/record", async (c) => {
         if (rc === 0) {
           console.log(`Converting completed for ${user}: ${oggPath}`);
 
+          let runtimeSeconds = -1;
+          try {
+            const probe = spawnSync("ffprobe", [
+              "-v",
+              "error",
+              "-show_entries",
+              "format=duration",
+              "-of",
+              "default=noprint_wrappers=1:nokey=1",
+              oggPath,
+            ]);
+
+            if (probe.status === 0) {
+              const out = probe.stdout.toString().trim();
+              const seconds = parseFloat(out);
+              if (!isNaN(seconds)) {
+                runtimeSeconds = Math.floor(seconds);
+              }
+            } else {
+              console.warn(
+                `ffprobe failed for ${oggPath}:`,
+                probe.stderr.toString()
+              );
+            }
+          } catch (err) {
+            console.error("Error running ffprobe:", err);
+          }
+
           const localFile = Bun.file(oggPath);
 
-          const s3file: S3File = s3client.file(oggPath.split("/").pop()!);
+          const s3key = oggPath.split("/").pop()!;
+
+          const s3file: S3File = s3client.file(s3key);
 
           const writer = s3file.writer({
             retry: 3,
@@ -190,6 +228,13 @@ app.post("/record", async (c) => {
           await writer.end();
 
           console.log(`Uploaded ${oggPath} to S3 bucket successfully.`);
+
+          await db.insert(recordings).values({
+            s3Key: s3key,
+            username: user,
+            timestamp: startTime!,
+            runtimeSeconds,
+          });
 
           try {
             unlinkSync(oggPath);
