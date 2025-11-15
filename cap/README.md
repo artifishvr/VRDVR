@@ -1,4 +1,4 @@
-# VRDVR Capture Tool (Go Version)
+# VRDVR Capture
 
 This is a simple Go program that watches your VRChat log file and sends VRCDN usernames to VRDVR.
 
@@ -11,6 +11,9 @@ Simply run the executable:
 ```
 
 You can also create a shortcut and auto-launch it using VRCX's App Launcher.
+
+> [!WARNING]  
+> Autostarting it seems to make EAC upset sometimes, causing VRChat to stuck as a black screen. I promise this doesn't do anything other than read the logfile and I don't know why that triggers it! You'll have to launch it manually *after* VRChat launches, if that happens to you.
 
 The program will:
 
