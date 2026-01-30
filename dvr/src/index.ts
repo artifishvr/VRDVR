@@ -244,7 +244,7 @@ app.post("/record", async (c) => {
 
           // Schedule cleanup of raw .ts file after 30 minutes
           const cleanupDelay = 30 * 60 * 1000; // 30 minutes in milliseconds
-          setTimeout(() => {
+          const timer = setTimeout(() => {
             try {
               if (existsSync(outputPath)) {
                 unlinkSync(outputPath);
@@ -254,6 +254,8 @@ app.post("/record", async (c) => {
               console.error(`Error cleaning up raw video file ${outputPath}:`, err);
             }
           }, cleanupDelay);
+          // Allow process to exit even if timer is still pending
+          timer.unref();
         } else {
           console.error(`Converting failed for ${user} with code ${rc}`);
         }
