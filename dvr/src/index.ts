@@ -155,6 +155,23 @@ app.post("/record", async (c) => {
 
     activeRecordings.delete(user);
 
+    // Helper function to schedule cleanup of raw .ts file
+    const scheduleRawFileCleanup = () => {
+      const cleanupDelay = 30 * 60 * 1000; // 30 minutes in milliseconds
+      const timer = setTimeout(() => {
+        try {
+          if (existsSync(outputPath)) {
+            unlinkSync(outputPath);
+            console.log(`Cleaned up raw video file: ${outputPath}`);
+          }
+        } catch (err) {
+          console.error(`Error cleaning up raw video file ${outputPath}:`, err);
+        }
+      }, cleanupDelay);
+      // Allow process to exit even if timer is still pending
+      timer.unref();
+    };
+
     if (code === 0 && existsSync(outputPath)) {
       const oggPath = outputPath.replace(/\.ts$/i, ".ogg");
       console.log(`Converting ${outputPath} -> ${oggPath}`);
@@ -243,26 +260,18 @@ app.post("/record", async (c) => {
           }
 
           // Schedule cleanup of raw .ts file after 30 minutes
-          const cleanupDelay = 30 * 60 * 1000; // 30 minutes in milliseconds
-          const timer = setTimeout(() => {
-            try {
-              if (existsSync(outputPath)) {
-                unlinkSync(outputPath);
-                console.log(`Cleaned up raw video file: ${outputPath}`);
-              }
-            } catch (err) {
-              console.error(`Error cleaning up raw video file ${outputPath}:`, err);
-            }
-          }, cleanupDelay);
-          // Allow process to exit even if timer is still pending
-          timer.unref();
+          scheduleRawFileCleanup();
         } else {
           console.error(`Converting failed for ${user} with code ${rc}`);
+          // Schedule cleanup of raw .ts file even if conversion failed
+          scheduleRawFileCleanup();
         }
       });
 
       remuxProcess.on("error", (err) => {
         console.error(`Converting error for ${user}:`, err);
+        // Schedule cleanup of raw .ts file even on error
+        scheduleRawFileCleanup();
       });
 
       if (process.env.NODE_ENV !== "production") {
@@ -274,6 +283,10 @@ app.post("/record", async (c) => {
       console.warn(
         `Skipping converting to ogg for ${user}: recording failed or file missing.`
       );
+      // Schedule cleanup of raw .ts file even if recording failed
+      if (existsSync(outputPath)) {
+        scheduleRawFileCleanup();
+      }
     }
   });
 
