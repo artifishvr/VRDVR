@@ -145,6 +145,28 @@ app.post("/record", async (c) => {
     user,
   });
 
+  let cleanupScheduled = false;
+
+  const scheduleRawFileCleanup = () => {
+    if (cleanupScheduled || !existsSync(outputPath)) {
+      return;
+    }
+    cleanupScheduled = true;
+    
+    const cleanupDelay = 30 * 60 * 1000;
+    const timer = setTimeout(() => {
+      try {
+        if (existsSync(outputPath)) {
+          unlinkSync(outputPath);
+          console.log(`Cleaned up raw video file: ${outputPath}`);
+        }
+      } catch (err) {
+        console.error(`Error cleaning up raw video file ${outputPath}:`, err);
+      }
+    }, cleanupDelay);
+    timer.unref();
+  };
+
   ffmpegProcess.on("close", (code) => {
     console.log(`Recording for ${user} finished with code ${code}`);
     let startTime = activeRecordings.get(user)?.startTime;
@@ -241,6 +263,8 @@ app.post("/record", async (c) => {
           } catch (err) {
             console.error("Error deleting local files:", err);
           }
+
+          scheduleRawFileCleanup();
         } else {
           console.error(`Converting failed for ${user} with code ${rc}`);
         }
