@@ -145,18 +145,15 @@ app.post("/record", async (c) => {
     user,
   });
 
-  // Track if cleanup has been scheduled to avoid duplicates
   let cleanupScheduled = false;
 
-  // Helper function to schedule cleanup of raw .ts file
   const scheduleRawFileCleanup = () => {
-    // Only schedule if not already scheduled and file exists
     if (cleanupScheduled || !existsSync(outputPath)) {
       return;
     }
     cleanupScheduled = true;
     
-    const cleanupDelay = 30 * 60 * 1000; // 30 minutes in milliseconds
+    const cleanupDelay = 30 * 60 * 1000;
     const timer = setTimeout(() => {
       try {
         if (existsSync(outputPath)) {
@@ -167,7 +164,6 @@ app.post("/record", async (c) => {
         console.error(`Error cleaning up raw video file ${outputPath}:`, err);
       }
     }, cleanupDelay);
-    // Allow process to exit even if timer is still pending
     timer.unref();
   };
 
@@ -268,19 +264,14 @@ app.post("/record", async (c) => {
             console.error("Error deleting local files:", err);
           }
 
-          // Schedule cleanup of raw .ts file after 30 minutes
           scheduleRawFileCleanup();
         } else {
           console.error(`Converting failed for ${user} with code ${rc}`);
-          // Schedule cleanup of raw .ts file even if conversion failed
-          scheduleRawFileCleanup();
         }
       });
 
       remuxProcess.on("error", (err) => {
         console.error(`Converting error for ${user}:`, err);
-        // Schedule cleanup of raw .ts file even on error
-        scheduleRawFileCleanup();
       });
 
       if (process.env.NODE_ENV !== "production") {
@@ -292,16 +283,12 @@ app.post("/record", async (c) => {
       console.warn(
         `Skipping converting to ogg for ${user}: recording failed or file missing.`
       );
-      // Schedule cleanup of raw .ts file even if recording failed
-      scheduleRawFileCleanup();
     }
   });
 
   ffmpegProcess.on("error", (error) => {
     console.error(`Recording error for ${user}:`, error);
     activeRecordings.delete(user);
-    // Schedule cleanup of raw .ts file even on recording error
-    scheduleRawFileCleanup();
   });
 
   if (process.env.NODE_ENV !== "production") {
