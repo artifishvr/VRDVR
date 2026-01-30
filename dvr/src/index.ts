@@ -241,6 +241,19 @@ app.post("/record", async (c) => {
           } catch (err) {
             console.error("Error deleting local files:", err);
           }
+
+          // Schedule cleanup of raw .ts file after 30 minutes
+          const cleanupDelay = 30 * 60 * 1000; // 30 minutes in milliseconds
+          setTimeout(() => {
+            try {
+              if (existsSync(outputPath)) {
+                unlinkSync(outputPath);
+                console.log(`Cleaned up raw video file: ${outputPath}`);
+              }
+            } catch (err) {
+              console.error(`Error cleaning up raw video file ${outputPath}:`, err);
+            }
+          }, cleanupDelay);
         } else {
           console.error(`Converting failed for ${user} with code ${rc}`);
         }
