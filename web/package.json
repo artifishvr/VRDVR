@@ -11,14 +11,15 @@
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"format": "prettier --write .",
-		"lint": "prettier --check ."
+		"lint": "prettier --check .",
+		"db:push": "echo 'WRONG FOLDER! Use dvr'"
 	},
 	"devDependencies": {
-		"@internationalized/date": "^3.8.1",
+		"@internationalized/date": "^3.10.0",
 		"@sveltejs/kit": "^2.43.2",
 		"@sveltejs/vite-plugin-svelte": "^6.2.0",
 		"@tailwindcss/vite": "^4.1.13",
-		"bits-ui": "^2.11.0",
+		"bits-ui": "^2.14.4",
 		"clsx": "^2.1.1",
 		"drizzle-kit": "^0.31.5",
 		"prettier": "^3.6.2",
@@ -34,7 +35,7 @@
 	},
 	"dependencies": {
 		"@fontsource/maple-mono": "^5.2.6",
-		"@lucide/svelte": "^0.544.0",
+		"@lucide/svelte": "^0.561.0",
 		"@neondatabase/serverless": "^1.0.2",
 		"@sveltejs/adapter-node": "^5.4.0",
 		"aws4fetch": "^1.0.20",

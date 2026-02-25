@@ -1,12 +1,16 @@
 <script lang="ts">
-	import { Download, Calendar, Clock, Play, EllipsisVertical, Link } from '@lucide/svelte';
+	import { Download, Calendar as CalendarIcon, Clock, Play, EllipsisVertical, Link, Search } from '@lucide/svelte';
 	import { PUBLIC_S3_HOST } from '$env/static/public';
 	import type { PageProps } from './$types';
 	import { Button } from '$lib/components/ui/button';
+	import { Input } from '$lib/components/ui/input';
+	import { Calendar } from '$lib/components/ui/calendar';
+	import * as Popover from '$lib/components/ui/popover';
 	import AudioPlayer from '$lib/components/AudioPlayer.svelte';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import { onMount, onDestroy } from 'svelte';
 	import { page } from '$app/state';
+	import { DateFormatter, getLocalTimeZone, type DateValue } from '@internationalized/date';
 
 	import { pushState } from '$app/navigation';
 
@@ -16,6 +20,32 @@
 	let currentItem = $state({});
 
 	let items = data.recordings;
+	
+	let searchQuery = $state('');
+	let dateValue = $state<DateValue | undefined>(undefined);
+
+	const df = new DateFormatter('en-US', {
+		dateStyle: 'long'
+	});
+
+	let filteredItems = $derived(
+		items.filter((item: any) => {
+			const matchesSearch = item.username.toLowerCase().includes(searchQuery.toLowerCase());
+			
+			let matchesDate = true;
+			if (dateValue) {
+				const itemDate = new Date(item.timestamp);
+				const selectedDate = dateValue.toDate(getLocalTimeZone());
+				
+				matchesDate = 
+					itemDate.getFullYear() === selectedDate.getFullYear() &&
+					itemDate.getMonth() === selectedDate.getMonth() &&
+					itemDate.getDate() === selectedDate.getDate();
+			}
+			
+			return matchesSearch && matchesDate;
+		})
+	);
 
 	function downloadItem(item: any) {
 		const url = `${PUBLIC_S3_HOST}/${item.s3Key}`;
@@ -92,15 +122,51 @@
 		>
 	</p>
 
-	{#if items.length === 0}
+	<div class="flex flex-col sm:flex-row gap-4 mb-6">
+		<div class="relative flex-1 max-w-sm">
+			<Search class="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+			<Input
+				type="search"
+				placeholder="Search by username..."
+				class="pl-8"
+				bind:value={searchQuery}
+			/>
+		</div>
+		
+		<Popover.Root>
+			<Popover.Trigger>
+				{#snippet child({ props })}
+					<Button
+						variant="outline"
+						class="w-[240px] justify-start text-left font-normal {dateValue ? '' : 'text-muted-foreground'}"
+						{...props}
+					>
+						<CalendarIcon class="mr-2 h-4 w-4" />
+						{dateValue ? df.format(dateValue.toDate(getLocalTimeZone())) : "Pick a date"}
+					</Button>
+				{/snippet}
+			</Popover.Trigger>
+			<Popover.Content class="w-auto p-0" align="start">
+				<Calendar type="single" bind:value={dateValue} />
+			</Popover.Content>
+		</Popover.Root>
+		
+		{#if dateValue || searchQuery}
+			<Button variant="ghost" onclick={() => { dateValue = undefined; searchQuery = ''; }}>
+				Clear filters
+			</Button>
+		{/if}
+	</div>
+
+	{#if filteredItems.length === 0}
 		<p>No items found.</p>
 	{:else}
 		<ul class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-			{#each items as item}
+			{#each filteredItems as item}
 				<li class="rounded border border-zinc-800 bg-zinc-900 p-4 hover:shadow transition relative">
 					<div class="font-semibold truncate">{item.username}</div>
 					<div class="text-sm text-zinc-400 flex items-center mt-1">
-						<Calendar size={12} class="mr-1" />
+						<CalendarIcon size={12} class="mr-1" />
 						{new Date(item.timestamp).toLocaleDateString()} @ {new Date(
 							item.timestamp
 						).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
